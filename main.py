@@ -3,6 +3,8 @@ from scanf import scanf
 opponentCards = ['3-R', '11-R', '2-G', '10-V']
 userCards = ['4-R', '10-R', '4-G', '11-V']
 
+tromf = 'R'
+
 opponentSum = 0
 userSum = 0
 
@@ -15,31 +17,87 @@ def gamePlay():
     global opponentSum
     global userSum
 
+    turn = -1
     while(0 < len(userCards)):
         #i go first
-        print("Your turn! Choose the index of your cards: ", userCards)
-        userInput = scanf("%d") #returns a tuple
-        print("You moved: ", userCards[userInput[0]])
-        userInput = userInput[0]
-        userMove = userCards[userInput]
-        userCards.remove(userMove)
+        userMove, opponentMove = handleTurns(turn)
 
-        opponentMove = bestMove(userMove)
-        print("Opponend moved: ", opponentMove)
-        opponentCards.remove(opponentMove)
-
-        if(opponentMove.split('-')[1] == userMove.split('-')[1]):
-            if(int(opponentMove.split('-')[0]) > int(userMove.split('-')[0])):
-                opponentSum = opponentSum + int(opponentMove.split('-')[0]) + int(userMove.split('-')[0])
-            else:
-                userSum = userSum + int(opponentMove.split('-')[0]) + int(userMove.split('-')[0])
-        else:
-            userSum = userSum + int(opponentMove.split('-')[0]) + int(userMove.split('-')[0])
-
+        turn = checkRoundWinner(userMove, opponentMove, turn)
 
     print("Game finished!")
     print("You:", userSum)
     print("Opponent:", opponentSum)
+
+
+def handleTurns(whoWonLast):
+    if(whoWonLast == 1):
+        #opponent moves first
+        opponentMove = opponentMoves("")  
+        userMove = userMoves()
+    else:
+        userMove = userMoves()
+        opponentMove = opponentMoves(userMove)
+
+    return userMove, opponentMove
+
+
+def userMoves():
+    print("Your turn! Choose the index of your cards: ", userCards)
+    userInput = scanf("%d") #returns a tuple
+    print("You moved: ", userCards[userInput[0]])
+    userInput = userInput[0]
+    userMove = userCards[userInput]
+    userCards.remove(userMove)
+    return userMove
+
+
+def opponentMoves(userMoveOrNull):
+    opponentMove = bestMove(userMoveOrNull)
+    print("Opponend moved: ", opponentMove)
+    opponentCards.remove(opponentMove)
+    return opponentMove
+
+
+def checkRoundWinner(userMove, opponentMove, firstPlayerInRound):
+    global opponentSum
+    global userSum
+
+    if firstPlayerInRound == 1:
+        firstPlayerInRoundSum = opponentSum
+    else:
+        firstPlayerInRoundSum = userSum
+
+    userMoveValue = getCardValue(userMove)
+    opponentMoveValue = getCardValue(opponentMove)
+
+    userMoveColor = getCardColor(userMove)
+    opponentMoveColor = getCardColor(opponentMove)
+
+    if(userMoveColor == opponentMoveColor):
+        #also check for announcements
+        #announcement = checkAnnouncement(userMove, cardsOfTheFirstPlayerInRound)
+        if(opponentMoveValue > userMoveValue):
+            opponentSum = opponentSum + opponentMoveValue + userMoveValue
+            return 1
+        else:
+            userSum = userSum + opponentMoveValue + userMoveValue
+            return -1
+    else:
+        firstPlayerInRoundSum = firstPlayerInRoundSum + opponentMoveValue + userMoveValue
+        return firstPlayerInRound
+    
+
+def checkAnnouncement(movedCard, cards):
+    global tromf
+    movedCardColor = getCardColor(movedCard)
+    for card in cards:
+        if getCardColor(card) == movedCardColor:
+            if getCardValue(card) + getCardValue(movedCard) == 7: #treiar + patrar
+                if movedCardColor == tromf:
+                    return 40
+                else:
+                    return 20
+    return 0
 
 
 def checkWinner():
@@ -58,6 +116,10 @@ def checkWinner():
 
 def getCardValue(card):
     return int(card.split('-')[0])
+
+
+def getCardColor(card):
+    return card.split('-')[1]
 
 
 def whatYouCanMove(dowNCard, cards):
@@ -104,7 +166,6 @@ def minimax(downCard, depth, isMaximizing):
             opponentSum = opponentSum - getCardValue(move)
             if bestScore < score:
                 bestScore = score
-
 
         return bestScore
     
