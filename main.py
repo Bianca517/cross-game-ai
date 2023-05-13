@@ -1,7 +1,7 @@
 from scanf import scanf
 
-opponentCards = ['3-R', '11-R', '2-G', '10-V']
-userCards = ['4-R', '10-R', '4-G', '11-V']
+userCards = ['3-R', '4-R', '11-R', '2-G', '10-V']
+opponentCards = ['2-R', '10-R', '4-G', '11-V', '10-G']
 
 tromf = 'R'
 
@@ -22,7 +22,11 @@ def gamePlay():
         #i go first
         userMove, opponentMove = handleTurns(turn)
 
-        turn = checkRoundWinner(userMove, opponentMove, turn)
+        turn = checkRoundWinner(userMove, opponentMove, turn)[0]
+        calculateSumsWinner(turn, userMove, opponentMove)
+
+        print("You:", userSum)
+        print("Opponent:", opponentSum)
 
     print("Game finished!")
     print("You:", userSum)
@@ -41,8 +45,22 @@ def handleTurns(whoWonLast):
     return userMove, opponentMove
 
 
+def calculateSumsWinner(winner, userMove, opponentMove):
+    global opponentSum
+    global userSum
+    downCardsSum = getCardValue(userMove) + getCardValue(opponentMove)
+      #map to user or opponents
+    if winner == 1:
+        announcement = checkAnnouncement(getCardColor(opponentMove), getCardValue(opponentMove), opponentCards)
+        opponentSum = opponentSum + downCardsSum + announcement
+    else:
+        announcement = checkAnnouncement(getCardColor(userMove), getCardValue(userMove), userCards)
+        userSum = userSum + downCardsSum + announcement
+
+
 def userMoves():
     print("Your turn! Choose the index of your cards: ", userCards)
+    print("Opponent Cards are: " , opponentCards)
     userInput = scanf("%d") #returns a tuple
     print("You moved: ", userCards[userInput[0]])
     userInput = userInput[0]
@@ -61,38 +79,64 @@ def opponentMoves(userMoveOrNull):
 def checkRoundWinner(userMove, opponentMove, firstPlayerInRound):
     global opponentSum
     global userSum
+    global tromf
+    global userCards
+    global opponentCards
+
+    winner = 0
+    winnerSum = 0
 
     if firstPlayerInRound == 1:
         firstPlayerInRoundSum = opponentSum
+        firstPlayerInRoundCardColor = getCardColor(opponentMove)
+        firstPlayerInRoundCardValue = getCardValue(opponentMove)
+        secondPlayerInRoundSum = userSum
+        secondPlayerInRoundCardColor = getCardColor(userMove)
+        secondPlayerInRoundCardValue = getCardValue(userMove)
+        cardsOfTheFirstPlayerInRound = opponentCards
     else:
         firstPlayerInRoundSum = userSum
+        firstPlayerInRoundCardColor = getCardColor(userMove)
+        firstPlayerInRoundCardValue = getCardValue(userMove)
+        secondPlayerInRoundSum = opponentSum
+        secondPlayerInRoundCardColor = getCardColor(opponentMove)
+        secondPlayerInRoundCardValue = getCardValue(opponentMove)
+        cardsOfTheFirstPlayerInRound = userCards
 
-    userMoveValue = getCardValue(userMove)
-    opponentMoveValue = getCardValue(opponentMove)
+    downCardsSum = firstPlayerInRoundCardValue + secondPlayerInRoundCardValue
 
-    userMoveColor = getCardColor(userMove)
-    opponentMoveColor = getCardColor(opponentMove)
+    #check for announcements
+    announcement = checkAnnouncement(firstPlayerInRoundCardColor, firstPlayerInRoundCardValue, cardsOfTheFirstPlayerInRound)
+    #print("Anunt! ", announcement)
 
-    if(userMoveColor == opponentMoveColor):
-        #also check for announcements
-        #announcement = checkAnnouncement(userMove, cardsOfTheFirstPlayerInRound)
-        if(opponentMoveValue > userMoveValue):
-            opponentSum = opponentSum + opponentMoveValue + userMoveValue
-            return 1
+    if(firstPlayerInRoundCardColor == secondPlayerInRoundCardColor):
+        if(firstPlayerInRoundCardValue > secondPlayerInRoundCardValue):
+            winnerSum = firstPlayerInRoundSum + downCardsSum
+            winner = firstPlayerInRound
         else:
-            userSum = userSum + opponentMoveValue + userMoveValue
-            return -1
-    else:
-        firstPlayerInRoundSum = firstPlayerInRoundSum + opponentMoveValue + userMoveValue
-        return firstPlayerInRound
-    
+            winnerSum = secondPlayerInRoundSum + downCardsSum
+            winner = -1 * firstPlayerInRound
+    else: #different colors => if 2nd player did not move tromf, then first player wins
+        if firstPlayerInRoundCardColor == tromf: #differenct colors, first card is tromf => second card != tromf
+            winnerSum = firstPlayerInRoundSum + downCardsSum
+            winner = firstPlayerInRound
+        elif secondPlayerInRoundCardColor == tromf:
+            winnerSum = secondPlayerInRoundSum + downCardsSum
+            winner = -1 * firstPlayerInRound
+        else: #if no tromfs => first one wins the round
+            winnerSum = firstPlayerInRoundSum + downCardsSum
+            winner = firstPlayerInRound
 
-def checkAnnouncement(movedCard, cards):
+    winnerSum = winnerSum + announcement 
+    
+    return winner, winnerSum
+
+    
+def checkAnnouncement(movedCardColor, movedCardValue, cards):
     global tromf
-    movedCardColor = getCardColor(movedCard)
     for card in cards:
-        if getCardColor(card) == movedCardColor:
-            if getCardValue(card) + getCardValue(movedCard) == 7: #treiar + patrar
+        if getCardColor(card) == movedCardColor and  getCardValue(card) != movedCardValue: #different cards, same color
+            if getCardValue(card) + movedCardValue == 7: #treiar + patrar
                 if movedCardColor == tromf:
                     return 40
                 else:
@@ -122,18 +166,21 @@ def getCardColor(card):
     return card.split('-')[1]
 
 
-def whatYouCanMove(dowNCard, cards):
-    #to match the color 
-    newCards = []
-    for card in cards:
-        if card.split('-')[1] == dowNCard.split('-')[1]:
-            newCards.append(card)
-    
-    #if no card of that color is present, move anything
-    if newCards == []:
-        newCards = cards
-    
-    return newCards
+def whatYouCanMove(downCard, cards):
+    if downCard == "":
+        return cards
+    else:
+        #to match the color 
+        newCards = []
+        for card in cards:
+            if getCardColor(card) == getCardColor(downCard): #if the color matches
+                newCards.append(card)
+        
+        #if no card of that color is present, move anything
+        if newCards == []:
+            newCards = cards
+        
+        return newCards
 
 
 def minimax(downCard, depth, isMaximizing): 
@@ -148,10 +195,7 @@ def minimax(downCard, depth, isMaximizing):
     if(isMaximizing):
         bestScore = -1000000
 
-        if downCard != "":
-            allowedOpponentCards = whatYouCanMove(downCard, opponentCards)
-        else:
-            allowedOpponentCards = opponentCards
+        allowedOpponentCards = whatYouCanMove(downCard, opponentCards)
 
         #print('o1', opponentCards)
         #print('o', allowedOpponentCards)
@@ -160,10 +204,11 @@ def minimax(downCard, depth, isMaximizing):
             move = allowedOpponentCards[i]
             #print(move)
             opponentCards.remove(move)
-            opponentSum = opponentSum + getCardValue(move)
+            winner, sumWinner = checkRoundWinner(downCard, move, -1)
+            opponentSum = opponentSum + sumWinner if winner == 1 else opponentSum
             score = minimax(move, depth + 1, False)
             opponentCards.append(move)
-            opponentSum = opponentSum - getCardValue(move)
+            opponentSum = opponentSum - sumWinner if winner == 1 else opponentSum
             if bestScore < score:
                 bestScore = score
 
@@ -172,20 +217,18 @@ def minimax(downCard, depth, isMaximizing):
     else:
         bestScore = 1000000
 
-        if downCard != "":
-            allowedUserCards = whatYouCanMove(downCard, userCards)
-        else:
-            allowedUserCards = userCards
+        allowedUserCards = whatYouCanMove(downCard, userCards)
 
         #print('u ', allowedUserCards)
 
         for i in range(0, len(allowedUserCards)):
             move = allowedUserCards[i]
             userCards.remove(move)
-            userSum = userSum + getCardValue(move)
+            winner, sumWinner = checkRoundWinner(downCard, move, 1)
+            userSum = userSum + sumWinner if winner == -1 else userSum 
             score = minimax(move, depth + 1, True)
             userCards.append(move)
-            userSum = userSum - getCardValue(move)
+            userSum = userSum - sumWinner if winner == -1 else userSum
             if bestScore > score:
                 bestScore = score
 
@@ -197,18 +240,26 @@ def bestMove(downCard):
     bestScore = -10000000
     bestMove = ""
 
-    if downCard != "":
-        allowedOpponentCards = whatYouCanMove(downCard, opponentCards)
-    else:
-        allowedOpponentCards = opponentCards
+    isMaximizing = True if downCard == "" else False
 
+    if downCard == "":
+        allowedOpponentCards = opponentCards #opp mives first
+    else:
+        allowedOpponentCards = whatYouCanMove(downCard, opponentCards)
     print(allowedOpponentCards)
 
-    for i in range(0, len(allowedOpponentCards)):
-        score = minimax(downCard, 0, True)
-        if(score > bestScore):
-            bestScore = score
-            bestMove = allowedOpponentCards[i]
+    if downCard == "":
+        for i in range(0, len(allowedOpponentCards)):
+            score = minimax(opponentCards[i], 0, False)
+            if(score > bestScore):
+                bestScore = score
+                bestMove = allowedOpponentCards[i]
+    else:
+        for i in range(0, len(allowedOpponentCards)):
+            score = minimax(downCard, 0, True)
+            if(score > bestScore):
+                bestScore = score
+                bestMove = allowedOpponentCards[i]
     
     return bestMove
 
