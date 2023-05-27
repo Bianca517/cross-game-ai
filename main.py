@@ -1,7 +1,7 @@
 from scanf import scanf
 
-userCards = ['3-R', '4-R', '11-R', '2-G', '10-V']
-opponentCards = ['2-R', '10-R', '4-G', '11-V', '10-G']
+userCards = ['2-R', '3-R', '4-R', '9-R', '10-R', '11-R', '2-G', '3-G']
+opponentCards = ['4-G', '9-G', '10-G', '11-G', '2-V', '3-V', '4-V', '10-V']
 
 tromf = 'R'
 
